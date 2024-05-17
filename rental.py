@@ -1,17 +1,64 @@
 import sqlite3
 
 
-class BookRental:
+class DatabaseManager:
     def __init__(self):
         self.conn = sqlite3.connect('rental.db')
         self.cursor = self.conn.cursor()
 
     def execute_query(self, query, params=()):
-        self.cursor.execute(query, params)
-        self.conn.commit()
-        return self.cursor.fetchall()
+        try:
+            self.cursor.execute(query, params)
+            self.conn.commit()
+            return self.cursor.fetchall()
+        except sqlite3.Error as e:
+            print(f"An error occurred: {e}")
+            return []
 
-    # Functions needed in the long run
+    def close_connection(self):
+        self.cursor.close()
+        self.conn.close()
+
+    def create_tables(self):
+        create_books_query = """
+            CREATE TABLE IF NOT EXISTS Books(
+                book_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                book_title TEXT NOT NULL,
+                book_author TEXT NOT NULL,
+                book_genre TEXT NOT NULL
+            );
+        """
+        create_people_query = """
+            CREATE TABLE IF NOT EXISTS People(
+                person_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                person_fname TEXT NOT NULL,
+                person_sname TEXT NOT NULL
+            );
+        """
+        create_rented_books_query = """
+            CREATE TABLE IF NOT EXISTS RentedBooks(
+                rental_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                book_id INTEGER NOT NULL,
+                person_id INTEGER NOT NULL,
+                author TEXT NOT NULL,
+                rentee_fname TEXT NOT NULL,
+                rentee_sname TEXT NOT NULL,
+                FOREIGN KEY (book_id) REFERENCES Books (book_id),
+                FOREIGN KEY (person_id) REFERENCES People (person_id)
+            );
+        """
+        self.execute_query(create_books_query)
+        self.execute_query(create_people_query)
+        self.execute_query(create_rented_books_query)
+
+    def drop_tables(self):
+        drop_books_query = """DROP TABLE IF EXISTS Books;"""
+        drop_people_query = """DROP TABLE IF EXISTS People;"""
+        drop_rented_books_query = """DROP TABLE IF EXISTS RentedBooks;"""
+        self.execute_query(drop_books_query)
+        self.execute_query(drop_people_query)
+        self.execute_query(drop_rented_books_query)
+
     def add_book(self, book_title, book_author, book_genre):
         query = """
         INSERT INTO Books (book_title, book_author, book_genre)
@@ -38,70 +85,40 @@ class BookRental:
         """
         self.execute_query(query, (person_id,))
 
+    def select_books(self):
+        query = """SELECT * FROM Books;"""
+        return self.execute_query(query)
+
+    def select_people(self):
+        query = """SELECT * FROM People;"""
+        return self.execute_query(query)
+
 
 def main():
 
-    drop_books_query = """DROP TABLE IF EXISTS Books;"""
-    drop_people_query = """DROP TABLE IF EXISTS People;"""
-    drop_rented_books_query = """DROP TABLE IF EXISTS RentedBooks;"""
-
-    create_books_query = """
-        CREATE TABLE IF NOT EXISTS Books(
-            book_id INTEGER PRIMARY KEY AUTOINCREMENT,
-            book_title TEXT NOT NULL,
-            book_author TEXT NOT NULL,
-            book_genre TEXT NOT NULL);
-    """
-
-    create_people_query = """
-        CREATE TABLE IF NOT EXISTS People(
-            person_id INTEGER PRIMARY KEY AUTOINCREMENT,
-            person_fname TEXT NOT NULL,
-            person_sname TEXT NOT NULL);
-    """
-
-    create_rented_books_query = """
-        CREATE TABLE IF NOT EXISTS RentedBooks(
-            rental_id INTEGER PRIMARY KEY AUTOINCREMENT,
-            book_id INTEGER NOT NULL,
-            person_id INTEGER NOT NULL,
-            author TEXT NOT NULL,
-            rentee_fname TEXT NOT NULL,
-            rentee_sname TEXT NOT NULL,
-            FOREIGN KEY (book_id) REFERENCES Books (book_id),
-            FOREIGN KEY (person_id) REFERENCES People (person_id));
-        """
-
-    select_books_query = """SELECT * FROM Books;"""
-    select_people_query = """SELECT * FROM People;"""
-
     # Initialise the database
-    br = BookRental()
+    br = DatabaseManager()
 
     # Drop tables
-    br.execute_query(drop_books_query)
-    br.execute_query(drop_people_query)
-    br.execute_query(drop_rented_books_query)
+    br.drop_tables()
 
     # Create tables
-    br.execute_query(create_books_query)
-    br.execute_query(create_people_query)
-    br.execute_query(create_rented_books_query)
+    br.create_tables()
 
     # Add records
-    br.add_book("George Orwell", "1984", "Dystopian")
+    br.add_book("1984", "George Orwell", "Dystopian")
     br.add_person("Kamil", "Nowak")
 
-    print(br.execute_query(select_books_query))
-    print(br.execute_query(select_people_query))
+    # Test if stuff works
+    print(br.select_books())
+    print(br.select_people())
     br.delete_book(1)
     br.delete_person(1)
-    print(br.execute_query(select_books_query))
-    print(br.execute_query(select_people_query))
+    print(br.select_books())
+    print(br.select_people())
 
-    # Close the database connection
-    br.conn.close()
-
+    # Close the database & cursor connection
+    br.close_connection()
     return 0
 
 
