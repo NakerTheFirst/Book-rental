@@ -21,24 +21,34 @@ class BookRental:
 
 def main():
 
-    create_books_query = (
-        "CREATE TABLE IF NOT EXISTS Books("
-        "book_id INTEGER PRIMARY KEY AUTOINCREMENT,"
-        "book_title TEXT NOT NULL,"
-        "book_author TEXT NOT NULL,"
-        "book_category TEXT NOT NULL);"
-    )
+    create_books_query = """
+        CREATE TABLE IF NOT EXISTS Books(
+            book_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            book_title TEXT NOT NULL,
+            book_author TEXT NOT NULL,
+            book_category TEXT NOT NULL);
+    """
 
-    create_people_query = (
-        "CREATE TABLE IF NOT EXISTS People("
-        "person_id INTEGER PRIMARY KEY AUTOINCREMENT,"
-        "person_fname TEXT NOT NULL,"
-        "person_sname TEXT NOT NULL);"
-    )
+    create_people_query = """
+        CREATE TABLE IF NOT EXISTS People(
+            person_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            person_fname TEXT NOT NULL,
+            person_sname TEXT NOT NULL);
+    """
 
-    select_query = (
-        "SELECT * FROM Books;"
-    )
+    create_rented_books_query = """
+        CREATE TABLE IF NOT EXISTS RentedBooks(
+            rental_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            book_id INTEGER NOT NULL,
+            person_id INTEGER NOT NULL,
+            author TEXT NOT NULL,
+            rentee_fname TEXT NOT NULL,
+            rentee_sname TEXT NOT NULL,
+            FOREIGN KEY (book_id) REFERENCES Books (book_id),
+            FOREIGN KEY (person_id) REFERENCES People (person_id));
+        """
+
+    select_query = """SELECT * FROM Books;"""
 
     # Initialise the database
     br = BookRental()
@@ -46,8 +56,9 @@ def main():
     # Create tables
     br.execute_query(create_books_query)
     br.execute_query(create_people_query)
+    br.execute_query(create_rented_books_query)
 
-    print(br.execute_query(select_query))
+    # print(br.execute_query(select_query))
 
     # Close the database connection
     br.conn.close()
