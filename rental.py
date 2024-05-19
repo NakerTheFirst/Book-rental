@@ -94,17 +94,20 @@ class DatabaseManager:
     def borrow_book(self, book_title, author_name, person_fname, person_sname):
         book_query = """SELECT book_id FROM Books WHERE book_title = ? AND book_author = ?;"""
         person_query = """SELECT person_id FROM People WHERE person_fname = ? AND person_sname = ?;"""
-        book_id = self.execute_query(book_query, (book_title, author_name))
+        book_ids = self.execute_query(book_query, (book_title, author_name))
         person_id = self.execute_query(person_query, (person_fname, person_sname))
 
-        if book_id and person_id:
-            borrow_query = """
-            INSERT INTO RentedBooks (book_id, person_id)
-            VALUES (?, ?);
-            """
-            self.execute_query(borrow_query, (book_id[0][0], person_id[0][0]))
-            return True
-        return False
+        if book_ids and person_id:
+            for book_id in book_ids:
+                if not self.is_book_rented(book_id[0]):
+                    borrow_query = """
+                    INSERT INTO RentedBooks (book_id, person_id)
+                    VALUES (?, ?);
+                    """
+                    self.execute_query(borrow_query, (book_id[0], person_id[0][0]))
+                    return True, 'Book borrowed successfully'
+            return False, 'All copies of this book are already rented'
+        return False, 'Book or Person not found'
 
     def return_book(self, book_title, author_name, person_fname, person_sname):
         book_query = """SELECT book_id FROM Books WHERE book_title = ? AND book_author = ?;"""
@@ -117,6 +120,11 @@ class DatabaseManager:
             self.execute_query(return_query, (book_id[0][0], person_id[0][0]))
             return True
         return False
+
+    def is_book_rented(self, book_id):
+        query = """SELECT COUNT(*) FROM RentedBooks WHERE book_id = ?;"""
+        result = self.execute_query(query, (book_id,))
+        return result[0][0] > 0
 
     def select_rented_books(self):
         query = """
@@ -327,11 +335,12 @@ class BookRentalApp(QWidget):
         person_sname = self.rent_person_sname_input.text()
 
         if book_title and author_name and person_fname and person_sname:
-            success = self.db_manager.borrow_book(book_title, author_name, person_fname, person_sname)
+            success, message = self.db_manager.borrow_book(book_title, author_name, person_fname, person_sname)
             if success:
                 self.update_rented_books()
+                QMessageBox.information(self, 'Success', message)
             else:
-                QMessageBox.warning(self, 'Not Found', 'Book or Person not found')
+                QMessageBox.warning(self, 'Error', message)
         else:
             QMessageBox.warning(self, 'Input Error', 'All fields are required')
 
