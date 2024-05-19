@@ -29,6 +29,9 @@ class GUI(QWidget):
         self.setWindowTitle('Book Rental System')
         self.setGeometry(100, 100, 800, 600)
 
+        # Window icon
+        self.setWindowIcon(QIcon('icon.svg'))
+
         layout = QVBoxLayout()
 
         # Books Section
